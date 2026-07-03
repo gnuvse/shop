@@ -4,9 +4,15 @@
 
 ## Запуск
 
+```bash
 rebar3 compile
 rebar3 shell
+```
+Затем в Erlang shell:
+
+```erlang
 tcp_handler:start_server(8080).
+```
 
 ## Команды
 
