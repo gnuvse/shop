@@ -49,14 +49,14 @@ init([]) ->
             shutdown => 5000,
             type => supervisor,
             modules => [cart_sup]            
-        },
-        #{
-            id => tcp_handler,
-            start => {tcp_handler, start_link, []},
-            restart => permanent,
-            shutdown => 5000,
-            type => worker,
-            modules => [tcp_handler]            
         }
+        % #{
+        %     id => tcp_handler,
+        %     start => {tcp_handler, start_link, []},
+        %     restart => permanent,
+        %     shutdown => 5000,
+        %     type => worker,
+        %     modules => [tcp_handler]            
+        % }
     ],
     {ok, {{one_for_one, 5, 10}, Children}}.
