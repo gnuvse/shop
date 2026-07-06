@@ -16,13 +16,12 @@
 -spec checkout(string(), integer()) -> {ok, integer()} | {error, insufficient_stock | not_found}.
 
 
-
 init([]) ->
-    % % create table on disk
-    % mnesia:create_schema([node()]),
-    % start OTP mnesia
-    mnesia:start(),
-
+    mnesia:create_schema([node()]),
+    case mnesia:system_info(is_running) of
+        no -> mnesia:start();
+        yes -> ok
+    end,
     case mnesia:create_table(catalog, [
         {attributes, [name, price, stock]},
         {disc_copies, [node()]}
@@ -62,7 +61,8 @@ checkout(Name, Quantity) ->
 
 % CallBacks
 
-handle_call({add, Name, Price, Stock}, _From, State) when is_list(Name) ->
+handle_call({add, Name, Price, Stock}, _From, State) when is_list(Name), 
+    is_integer(Stock), is_number(Price), Price >= 1, Stock >= 0 ->
     case mnesia:transaction(fun() ->
             mnesia:write({catalog, Name, Price, Stock}),
             {ok, added_new}
@@ -71,7 +71,12 @@ handle_call({add, Name, Price, Stock}, _From, State) when is_list(Name) ->
         {aborted, Reason} -> {reply, {error, Reason}, State}
     end;
 
-handle_call({update_price, Name, NewPrice}, _From, State) when is_list(Name) ->
+
+handle_call({add, _Name, Price, Stock}, _From, State) ->
+    {reply, {error, {wrong_data, Price, Stock}}, State};
+
+
+handle_call({update_price, Name, NewPrice}, _From, State) when is_list(Name), is_number(NewPrice), NewPrice >= 1 ->
     case mnesia:transaction(fun() ->
         case mnesia:read({catalog, Name}) of 
             [{catalog, Name, _OldPrice, Stock}] ->
@@ -84,6 +89,10 @@ handle_call({update_price, Name, NewPrice}, _From, State) when is_list(Name) ->
         {atomic, Result} -> {reply, Result, State};
         {aborted, Reason} -> {reply, {error, Reason}, State}
     end;
+
+
+handle_call({update_price, Name, Price}, _From, State) ->
+    {reply, {error, {wrong_price, Name, Price}}, State};
 
 handle_call({get, Name}, _From, State) ->
     case mnesia:transaction(fun() -> mnesia:read({catalog, Name}) end) of 
